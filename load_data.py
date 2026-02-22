@@ -128,7 +128,7 @@ def calculate_points(df_):
 
 
 def calculate_aggregated_features_vectorized(df_):
-    aggregate_window = 2
+    aggregate_window = 10
     # 1. Sort the entire dataframe first to ensure time-consistency within groups
     df_ = df_.sort_values([TEAM_KEY, STATE_KEY, DATE_KEY], ascending=True)
     
@@ -196,7 +196,7 @@ def calculate_opponent_features(df_):
     df_[DIFF_CUM_POINTS_KEY] = df_.cum_points - df_.opponent_cum_points
     df_[DIFF_ROLLING_CUM_POINTS] = df_.window_cum_points - df_.opponent_window_cum_points
     df_[DIFF_ROLLING_MEAN_POINTS_KEY] = df_.window_mean_points - df_.opponent_window_mean_points
-    df_[TARGET_KEY] = df_[GOAL_DIFF_KEY]
+    df_[TARGET_KEY] = df_[POINTS_KEY]
     return df_
 
 
@@ -350,13 +350,13 @@ def train(df_, feature_names, target, categorical_cols):
         except:
             print("Last")
         
-        if target == POINTS_KEY:
-            labels_train = labels_train.astype('category').copy()
-            labels_val = labels_val.astype('category').copy()
-            try:
-                labels_test = labels_test.astype('category').copy()
-            except:
-                print("Last")
+        # if target == POINTS_KEY:
+        labels_train = labels_train.astype('category').copy()
+        labels_val = labels_val.astype('category').copy()
+        try:
+            labels_test = labels_test.astype('category').copy()
+        except:
+            print("Last")
 
         X_train = features_train
         y_train = labels_train
@@ -372,16 +372,16 @@ def train(df_, feature_names, target, categorical_cols):
 
         early_stopping = lgbm.early_stopping(stopping_rounds=50)
         log_evaluation = lgbm.log_evaluation(period=10)
-        if target == POINTS_KEY:
-            model = lgbm.LGBMClassifier(
-                objective='multiclass',
-                num_class=3,
-                metric='multi_logloss',
-                is_unbalance=True,
-                n_estimators=10000, 
-                device='cuda',        # Tells LightGBM to use the GPU
-                gpu_use_dp=False
-            )
+        # if target == POINTS_KEY:
+        model = lgbm.LGBMClassifier(
+            objective='multiclass',
+            num_class=3,
+            metric='multi_logloss',
+            is_unbalance=True,
+            n_estimators=10000, 
+            # device='cuda',        # Tells LightGBM to use the GPU
+            # gpu_use_dp=False
+        )
             # early_stopping = lgbm.early_stopping(stopping_rounds=50)
             # log_evaluation = lgbm.log_evaluation(period=10)
             # model.fit(
@@ -390,14 +390,14 @@ def train(df_, feature_names, target, categorical_cols):
             #     callbacks=[early_stopping, log_evaluation]
             # )
         #elif target == GOAL_DIFF_KEY:
-        else:
-            model = lgbm.LGBMRegressor(
-                objective="regression",
-                metric="rmse",
-                device='cuda',        # Tells LightGBM to use the GPU
-                gpu_use_dp=False
-            )
-            # model.fit(X_train, y_train)
+        # else:
+        #     model = lgbm.LGBMRegressor(
+        #         objective="regression",
+        #         metric="rmse",
+        #         # device='cuda',        # Tells LightGBM to use the GPU
+        #         # gpu_use_dp=False
+        #     )
+        #     # model.fit(X_train, y_train)
         model.fit(
             X_train, y_train,
             eval_set=[(X_val, y_val)],  # Crucial: Early stopping needs a validation set
